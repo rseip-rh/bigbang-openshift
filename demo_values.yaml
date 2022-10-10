@@ -1,0 +1,209 @@
+domain: apps.bigbang1.redhatgov.io
+
+openshift: true
+
+istio:
+  enabled: true
+  # values passes through to istio-controlplane chart
+  values:
+    monitoring:
+      enabled: false
+    networkPolicies:
+      enabled: true
+    values: # possible values found here https://istio.io/v1.5/docs/reference/config/installation-options (ignore 1.5, latest docs point here)
+      global: # global istio operator values
+        proxy: # mutating webhook injected istio sidecar proxy's values
+          resources:
+            requests:
+              cpu: 0m # null get ignored if used here
+              memory: 0Mi
+            limits:
+              cpu: 0m
+              memory: 0Mi
+
+istiooperator:
+  enabled: true
+  # values passes through to istio-operator chart
+
+jaeger:
+  enabled: false
+
+kiali:
+  enabled: true
+  # values pass through to kiali chart
+  values:
+    istio:
+      enabled: true
+    cr:
+      spec:
+        istio_component_namespaces:
+          grafana: my-grafana
+          prometheus: openshift-monitoring
+          tracing: jaeger
+        external_services:
+          prometheus:
+            url: http://monitoring-monitoring-kube-prometheus.monitoring.svc.cluster.local:9090
+          grafana:
+            #in_cluster_url: "http://monitoring-monitoring-grafana.monitoring.svc.cluster.local:80"
+            in_cluster_url: "http://grafana-service.my-grafana.svc.cluster.local:3000"
+            url: "https://grafana-route-my-grafana.apps.bigbang1.redhatgov.io/"
+          tracing:
+            url: "https://tracing.apps.bigbang1.redhatgov.io"
+
+clusterAuditor:
+  enabled: false
+  # values pass through to cluster-auditor chart
+  values:
+    resources:
+      requests:
+        cpu: 400m
+        memory: 2Gi
+      limits:
+        cpu: null
+        memory: null
+
+gatekeeper:
+  enabled: true
+  git:
+    tag: null
+    branch: "cmays-openshift-1"
+  values:
+    replicas: 1
+    controllerManager:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 512Mi
+        limits:
+          cpu: null
+          memory: null
+    audit:
+      resources:
+        requests:
+          cpu: 400m
+          memory: 768Mi
+        limits:
+          cpu: null
+          memory: null
+    violations:
+      allowedDockerRegistries:
+        enforcementAction: dryrun
+        parameters:
+          repos:
+            - registry1.dso.mil
+            - quay.io
+            - image-registry.openshift-image-registry.svc
+      bannedImageTags:
+        enforcementAction: dryrun
+      selinuxPolicy:
+        enabled: false
+
+kyverno:
+  enabled: false
+
+kyverno-policies:
+  enabled: false
+
+logging:
+  enabled: false
+  # values pass through to elasticsearch-kibana chart
+  values:
+    kibana:
+      count: 1
+      resources:
+        requests:
+          cpu: 400m
+          memory: 1Gi
+        limits:
+          cpu: null  # nonexistent cpu limit results in faster spin up
+          memory: null
+    elasticsearch:
+      master:
+        count: 1
+        resources:
+          requests:
+            cpu: 400m
+            memory: 2Gi
+          limits:
+            cpu: null
+            memory: null
+      data:
+        count: 1
+        resources:
+          requests:
+            cpu: 400m
+            memory: 2Gi
+          limits:
+            cpu: null
+            memory: null
+
+eckoperator:
+  enabled: false
+
+fluentbit:
+  enabled: false
+
+promtail:
+  enabled: false
+
+loki:
+  enabled: false
+
+tempo:
+  enabled: false
+
+# monitoring includes Prometheus, Grafana, and Alertmanager
+monitoring:
+  enabled: false
+
+twistlock:
+  enabled: false # twistlock requires a license to work, so we're disabling it
+
+addons:
+  argocd:
+    enabled: false
+
+  authervice:
+    enabled: false
+
+  minioOperator:
+    enabled: false
+
+  minio:
+    enabled: false
+
+  gitlab:
+    enabled: false
+
+  gitlabRunner:
+    enabled: false
+
+  nexus:
+    enabled: false
+
+  sonarqube:
+    enabled: false
+
+# Deployment of HAProxy is automatically toggled depending on Monitoring SSO and Monitoring Istio Injection
+  #haproxy:
+
+  anchore:
+    enabled: false
+
+  mattermostoperator:
+    enabled: false
+
+  mattermost:
+    enabled: false
+
+  velero:
+    enabled: false
+
+  keycloak:
+    enabled: false
+
+  vault:
+    enabled: false
+
+  metricsServer:
+    enabled: false
