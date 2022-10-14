@@ -121,6 +121,7 @@ oc -n kiali create -f ~/bigbang/NetworkAttachmentDefinition.yaml
 oc -n jaeger create -f ~/bigbang/NetworkAttachmentDefinition.yaml
 ## below necessary for Big Bang Prometheus, not OCP
 #oc -n monitoring create -f NetworkAttachmentDefinition.yaml
+oc -n cluster-auditor create -f ~/bigbang/NetworkAttachmentDefinition.yaml
 ```
 
 ## Validate Big Bang on OpenShift
