@@ -93,7 +93,7 @@ EOF
 
 ### Install Big Bang Umbrella Helm Chart
 ```
-helm upgrade --install bigbang $HOME/cluster/bigbang/chart \
+helm upgrade --install bigbang $HOME/bigbang/chart \
   --values https://repo1.dso.mil/platform-one/big-bang/bigbang/-/raw/master/chart/ingress-certs.yaml \
   --values $HOME/bigbang/ib_creds.yaml \
   --values $HOME/demo_values.yaml \
@@ -105,18 +105,18 @@ watch oc get hr -n bigbang
 
 ```
 oc -n istio-system expose svc/public-ingressgateway --port=http2
-cat <<\EOF >> $HOME/bigbang/NetworkAttachmentDefinition.yaml
+cat <<\EOF >> $HOME/NetworkAttachmentDefinition.yaml
 apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
 metadata:
   name: istio-cni
 EOF
-oc -n logging create -f ~/bigbang/NetworkAttachmentDefinition.yaml
-oc -n eck-operator create -f ~/bigbang/NetworkAttachmentDefinition.yaml
-oc -n kiali create -f ~/bigbang/NetworkAttachmentDefinition.yaml
-oc -n jaeger create -f ~/bigbang/NetworkAttachmentDefinition.yaml
+oc -n logging create -f ~/NetworkAttachmentDefinition.yaml
+oc -n eck-operator create -f ~/NetworkAttachmentDefinition.yaml
+oc -n kiali create -f ~/NetworkAttachmentDefinition.yaml
+oc -n jaeger create -f ~/NetworkAttachmentDefinition.yaml
 oc -n monitoring create -f NetworkAttachmentDefinition.yaml
-oc -n cluster-auditor create -f ~/bigbang/NetworkAttachmentDefinition.yaml
+oc -n cluster-auditor create -f ~/NetworkAttachmentDefinition.yaml
 ```
 
 ## Validate Big Bang on OpenShift
