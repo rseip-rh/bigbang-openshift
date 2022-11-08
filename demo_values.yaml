@@ -35,21 +35,6 @@ kiali:
   values:
     istio:
       enabled: true
-    cr:
-      spec:
-        istio_component_namespaces:
-          grafana: my-grafana
-          prometheus: openshift-monitoring
-          tracing: jaeger
-        external_services:
-          prometheus:
-            url: http://monitoring-monitoring-kube-prometheus.monitoring.svc.cluster.local:9090
-          grafana:
-            #in_cluster_url: "http://monitoring-monitoring-grafana.monitoring.svc.cluster.local:80"
-            in_cluster_url: "http://grafana-service.my-grafana.svc.cluster.local:3000"
-            url: "https://grafana-route-my-grafana.apps.bigbang1.redhatgov.io/"
-          tracing:
-            url: "https://tracing.apps.bigbang1.redhatgov.io"
 
 clusterAuditor:
   enabled: false
