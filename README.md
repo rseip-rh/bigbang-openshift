@@ -72,7 +72,6 @@ oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:logging
 oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:jaeger
 oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:kiali
 oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:monitoring
-oc adm policy add-scc-to-user node-exporter -z monitoring-monitoring-prometheus-node-exporter -n monitoring
 ```
 
 ## Install Big Bang
@@ -104,7 +103,7 @@ watch oc get hr -n bigbang
 ### Finalize Big Bang Install
 
 ```
-oc -n istio-system expose svc/public-ingressgateway --port=http2
+oc adm policy add-scc-to-user node-exporter -z monitoring-monitoring-prometheus-node-exporter -n monitoring
 cat <<\EOF >> $HOME/NetworkAttachmentDefinition.yaml
 apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
