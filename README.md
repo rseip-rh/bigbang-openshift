@@ -50,7 +50,7 @@ oc login
 
 ### Install and Configure Flux
 ```
-oc adm policy add-scc-to-group nonroot system:serviceaccounts:flux-system
+oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:flux-system
 export REGISTRY1_USERNAME=xxxx
 export REGISTRY1_PASSWORD=yyyy
 env | grep REGISTRY1
@@ -63,16 +63,16 @@ $HOME/bigbang/scripts/install_flux.sh -u $REGISTRY1_USERNAME -p $REGISTRY1_PASSW
 OCP 4.11
 
 ```
-oc adm policy add-scc-to-group privileged system:serviceaccounts:gatekeeper-system
-oc adm policy add-scc-to-group restricted system:serviceaccounts:cluster-auditor
-oc adm policy add-scc-to-group nonroot system:serviceaccounts:istio-operator
-oc adm policy add-scc-to-group nonroot system:serviceaccounts:istio-system
-oc adm policy add-scc-to-group nonroot system:serviceaccounts:eck-operator
-oc adm policy add-scc-to-group privileged system:serviceaccounts:logging
-oc adm policy add-scc-to-group nonroot system:serviceaccounts:jaeger
-oc adm policy add-scc-to-group nonroot system:serviceaccounts:kiali
-## below needed for Big Bang Prometheus, not necessary for OCP
-#oc adm policy add-scc-to-group privileged system:serviceaccounts:monitoring
+oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:gatekeeper-system
+oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:cluster-auditor
+oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:istio-operator
+oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:istio-system
+oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:eck-operator
+oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:logging
+oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:jaeger
+oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:kiali
+oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:monitoring
+oc adm policy add-scc-to-user node-exporter -z monitoring-monitoring-prometheus-node-exporter -n monitoring
 ```
 
 ## Install Big Bang
@@ -101,10 +101,6 @@ helm upgrade --install bigbang $HOME/cluster/bigbang/chart \
 watch oc get hr -n bigbang
 ```
 
-### Patch Istio Daemonset
-
-Refer to our [Istio documentation](istio.md) .
-
 ### Finalize Big Bang Install
 
 ```
@@ -119,8 +115,7 @@ oc -n logging create -f ~/bigbang/NetworkAttachmentDefinition.yaml
 oc -n eck-operator create -f ~/bigbang/NetworkAttachmentDefinition.yaml
 oc -n kiali create -f ~/bigbang/NetworkAttachmentDefinition.yaml
 oc -n jaeger create -f ~/bigbang/NetworkAttachmentDefinition.yaml
-## below necessary for Big Bang Prometheus, not OCP
-#oc -n monitoring create -f NetworkAttachmentDefinition.yaml
+oc -n monitoring create -f NetworkAttachmentDefinition.yaml
 oc -n cluster-auditor create -f ~/bigbang/NetworkAttachmentDefinition.yaml
 ```
 
