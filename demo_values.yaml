@@ -1,4 +1,4 @@
-domain: apps.bigbang1.redhatgov.io
+domain: bigbang.dev
 
 openshift: true
 
@@ -6,6 +6,7 @@ istio:
   enabled: true
   # values passes through to istio-controlplane chart
   values:
+    profile: "openshift"
     monitoring:
       enabled: false
     networkPolicies:
@@ -26,7 +27,7 @@ istiooperator:
   # values passes through to istio-operator chart
 
 jaeger:
-  enabled: false
+  enabled: true
 
 kiali:
   enabled: true
@@ -92,6 +93,7 @@ gatekeeper:
           repos:
             - registry1.dso.mil
             - quay.io
+            - registry.redhat.io
             - image-registry.openshift-image-registry.svc
       bannedImageTags:
         enforcementAction: dryrun
@@ -105,7 +107,7 @@ kyverno-policies:
   enabled: false
 
 logging:
-  enabled: false
+  enabled: true
   # values pass through to elasticsearch-kibana chart
   values:
     kibana:
@@ -138,10 +140,10 @@ logging:
             memory: null
 
 eckoperator:
-  enabled: false
+  enabled: true
 
 fluentbit:
-  enabled: false
+  enabled: true
 
 promtail:
   enabled: false
@@ -154,7 +156,75 @@ tempo:
 
 # monitoring includes Prometheus, Grafana, and Alertmanager
 monitoring:
-  enabled: false
+  enabled: true
+  values:
+    alertmanager:
+      enabled: false
+
+    prometheusOperator:
+      namespaces:
+        releaseNamespace: true
+
+    prometheus:
+
+      thanosService:
+        enabled: true
+      thanosServiceMonitor:
+        enabled: true
+
+      prometheusSpec:
+        thanos:
+          baseImage: registry1.dso.mil/ironbank/opensource/thanos/thanos
+          version: v0.29.0
+        podMonitorNamespaceSelector:
+          matchExpressions:
+            - key: openshift.io/cluster-monitoring
+              operator: NotIn
+              values:
+                - 'true'
+            - key: openshift.io/user-monitoring
+              operator: NotIn
+              values:
+                - 'false'
+        probeNamespaceSelector:
+          matchExpressions:
+            - key: openshift.io/cluster-monitoring
+              operator: NotIn
+              values:
+                - 'true'
+            - key: openshift.io/user-monitoring
+              operator: NotIn
+              values:
+                - 'false'
+        serviceMonitorNamespaceSelector:
+          matchExpressions:
+            - key: openshift.io/cluster-monitoring
+              operator: NotIn
+              values:
+                - 'true'
+            - key: openshift.io/user-monitoring
+              operator: NotIn
+              values:
+                - 'false'
+
+    kubeApiServer:
+      enabled: false
+    kubelet:
+      enabled: false
+    kubeControllerManager:
+      enabled: false
+    coreDns:
+      enabled: false
+    kubeDns:
+      enabled: false
+    kubeEtcd:
+      enabled: false
+    kubeScheduler:
+      enabled: false
+    kubeProxy:
+      enabled: false
+    kubeStateMetrics:
+      enabled: false
 
 twistlock:
   enabled: false # twistlock requires a license to work, so we're disabling it
