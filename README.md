@@ -70,7 +70,7 @@ oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:istio-system
 oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:eck-operator
 oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:logging
 oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:jaeger
-oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:kiali
+oc adm policy add-scc-to-group anyuid system:serviceaccounts:kiali
 oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:monitoring
 ```
 
