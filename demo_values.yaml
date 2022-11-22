@@ -37,7 +37,7 @@ kiali:
       enabled: true
 
 clusterAuditor:
-  enabled: false
+  enabled: true
   # values pass through to cluster-auditor chart
   values:
     resources:
