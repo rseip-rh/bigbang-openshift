@@ -4,7 +4,7 @@
 
 Red Hat effort to validate Big Bang on OpenShift 4.11.
 
-## Install OpenShift in AWS
+## Install OpenShift
 
 Workstation or bastion host prerequisites:
 ```
@@ -118,6 +118,7 @@ At the point where eck-operator shows `Helm install failed: timed out waiting fo
 
 ```
 oc adm policy add-scc-to-user node-exporter -z monitoring-monitoring-prometheus-node-exporter -n monitoring
+oc adm policy add-scc-to-user node-exporter -z logging-fluent-bit -n logging
 ```
 ```
 cat <<\EOF >> $HOME/NetworkAttachmentDefinition.yaml
