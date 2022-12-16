@@ -33,8 +33,11 @@ kiali:
   enabled: true
   # values pass through to kiali chart
   values:
-    istio:
-      enabled: true
+    cr:
+      spec:
+        identity:
+          cert_file: ""
+          private_key_file: ""
 
 clusterAuditor:
   enabled: true
