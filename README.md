@@ -136,7 +136,7 @@ oc -n logging create -f ~/NetworkAttachmentDefinition.yaml
 oc -n eck-operator create -f ~/NetworkAttachmentDefinition.yaml
 oc -n kiali create -f ~/NetworkAttachmentDefinition.yaml
 oc -n jaeger create -f ~/NetworkAttachmentDefinition.yaml
-oc -n monitoring create -f NetworkAttachmentDefinition.yaml
+oc -n monitoring create -f ~/NetworkAttachmentDefinition.yaml
 oc -n cluster-auditor create -f ~/NetworkAttachmentDefinition.yaml
 ```
 
