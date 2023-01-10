@@ -28,6 +28,11 @@ istiooperator:
 
 jaeger:
   enabled: true
+  values:
+    jaeger:
+      spec:
+        ingress:
+          security: none
 
 kiali:
   enabled: true
@@ -147,7 +152,7 @@ monitoring:
   enabled: true
   values:
     alertmanager:
-      enabled: false
+      enabled: true
 
     prometheusOperator:
       namespaces:
