@@ -88,7 +88,7 @@ Refer to [https://repo1.dso.mil/platform-one/big-bang/bigbang/-/blob/master/char
 
 ### Create Iron Bank Credentials File
 ```
-cat << EOF > $HOME/bigbang/ib_creds.yaml
+cat << EOF > $HOME/ib_creds.yaml
 registryCredentials:
   registry: registry1.dso.mil
   username: "$REGISTRY1_USERNAME"
@@ -102,7 +102,7 @@ Install Big Bang umbrella helm chart. Modify file paths if necessary.
 ```
 helm upgrade --install bigbang $HOME/bigbang/chart \
   --values https://repo1.dso.mil/platform-one/big-bang/bigbang/-/raw/master/chart/ingress-certs.yaml \
-  --values $HOME/bigbang/ib_creds.yaml \
+  --values $HOME/ib_creds.yaml \
   --values $HOME/demo_values.yaml \
   --namespace=bigbang --create-namespace
 ```
