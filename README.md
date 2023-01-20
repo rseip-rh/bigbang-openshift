@@ -78,6 +78,7 @@ oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:logging
 oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:jaeger
 oc adm policy add-scc-to-group anyuid system:serviceaccounts:kiali
 oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:monitoring
+oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:sonarqube
 ```
 
 ## Install Big Bang
@@ -138,6 +139,7 @@ oc -n kiali create -f ~/NetworkAttachmentDefinition.yaml
 oc -n jaeger create -f ~/NetworkAttachmentDefinition.yaml
 oc -n monitoring create -f ~/NetworkAttachmentDefinition.yaml
 oc -n cluster-auditor create -f ~/NetworkAttachmentDefinition.yaml
+oc -n sonarqube create -f ~/NetworkAttachmentDefinition.yaml
 ```
 
 ## Validate Big Bang on OpenShift
