@@ -245,7 +245,18 @@ addons:
     enabled: false
 
   sonarqube:
-    enabled: false
+    enabled: true
+    git:
+      tag: null
+      branch: "cmays-openshift-1"
+    values:
+      serviceAccount:
+        create: true
+      postgresql:
+        securityContext:
+          enabled: true
+        serviceAccount:
+          enabled: true
 
 # Deployment of HAProxy is automatically toggled depending on Monitoring SSO and Monitoring Istio Injection
   #haproxy:
