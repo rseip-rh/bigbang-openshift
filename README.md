@@ -1,12 +1,12 @@
-# Documenting Platform One Big Bang on Red Hat OpenShift
+# Installing and validating Big Bang on Openshift 4.11+
 
 ## Description
 
-Red Hat effort to validate Big Bang on OpenShift 4.11.
+Installing and validating Big Bang on Openshift 4.11+ .
 
-## Install OpenShift
+## On local workstation or bastion
 
-Workstation or bastion host prerequisites:
+1. Install necessary tools.
 ```
 sudo dnf install wget git perl-Digest-SHA jq
 wget https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-install-linux.tar.gz
@@ -20,7 +20,8 @@ mv openshift-install ~/bin/
 chmod +x ~/bin/*
 ```
 
-IPI includes all necessary IaC.
+2. Install OpenShift cluster.
+Installer-provisioned installation (IPI) includes all necessary Infrastructure As Code (IaC).
 
 ```
 mkdir $HOME/cluster
@@ -28,14 +29,16 @@ cd $HOME/cluster
 openshift-install create install-config
 ```
 
-Modify install-config.yaml as necessary.
+Modify `install-config.yaml` as necessary to set instance types, cluster network CIDR, machine network CIDR, CNI driver, aws region, subnet ID, hosted Zone ID, ssh key for hosts.
+
+**NOTE** For OpenShift 4.11 you will need to modify `networking.networkType` to `OVNKubernetes`. For OpenShift 4.12+, `OVNKubernetes` is the default and does not require modification.
 
 ```
 openshift-install create cluster
 chmod g-r $HOME/cluster/auth/kubeconfig
 ```
 
-## Configure OpenShift for Big Bang
+3. Install Kustomize, Flux, and clone Big Bang Git repo locally
 
 ```
 curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
@@ -48,46 +51,45 @@ git checkout tags/$(grep 'tag:' base/gitrepository.yaml | awk '{print $2}')
 oc login
 ```
 
-### Install and Configure Flux
+## Install Flux into OpenShift
+
+### Option A - Install Operator via OperatorHub
+
+1. Login to OpenShift console as Administrator.
+2. Click Operators -> OperatorHub.
+3. Install Flux Community operator.
+
+### Option B - Install via Big Bang install script
+
+1. Modify SCC.
 ```
 oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:flux-system
 ```
 
-Insert your values.
+2. Set Registry1 credentials.
 ```
 export REGISTRY1_USERNAME=xxxx
 export REGISTRY1_PASSWORD=yyyy
 ```
+
+3. Run Big Bang Flux install script.
 ```
 env | grep REGISTRY1
 cd ~/bigbang
-$HOME/bigbang/scripts/install_flux.sh -u $REGISTRY1_USERNAME -p $REGISTRY1_PASSWORD
+${HOME}/bigbang/scripts/install_flux.sh -u ${REGISTRY1_USERNAME} -p ${REGISTRY1_PASSWORD}
 ```
 
-### Security Context Constraints for Big Bang Packages
+## Modify Security Context Constraints for Big Bang Packages
 
-OCP 4.11
+Red Hat is merging feature branches for Big Bang packages to automatically modify Security Context Constraints. This is necessary due to the more restrictive permissions Red Hat enables by default. Manual commands are no longer necessary. See demo_values.yaml for details. Affected service accounts include: gatekeeper-system, cluster-auditor, istio-operator, istio-system, eck-operator, logging, jaeger, kiali, monitoring, sonarqube, harbor, and gitlab.
 
-```
-oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:gatekeeper-system
-oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:cluster-auditor
-oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:istio-operator
-oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:istio-system
-oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:eck-operator
-oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:logging
-oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:jaeger
-oc adm policy add-scc-to-group anyuid system:serviceaccounts:kiali
-oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:monitoring
-oc adm policy add-scc-to-group nonroot-v2 system:serviceaccounts:sonarqube
-```
+## Install Big Bang on OpenShift
 
-## Install Big Bang
-
-Modify [demo_values.yaml](demo_values.yaml) as necessary.
+1. Modify [demo_values.yaml](demo_values.yaml) as necessary.
 
 Refer to [https://repo1.dso.mil/platform-one/big-bang/bigbang/-/blob/master/chart/values.yaml](https://repo1.dso.mil/platform-one/big-bang/bigbang/-/blob/master/chart/values.yaml) for the Big Bang-documented default values that are and can be overridden.
 
-### Create Iron Bank Credentials File
+2. Create Iron Bank Credentials File
 ```
 cat << EOF > $HOME/ib_creds.yaml
 registryCredentials:
@@ -96,10 +98,10 @@ registryCredentials:
   password: "$REGISTRY1_PASSWORD"
 EOF
 ```
+3. Install Big Bang Umbrella Helm Chart
 
-### Install Big Bang Umbrella Helm Chart
-
-Install Big Bang umbrella helm chart. Modify file paths if necessary.
+Modify file paths if necessary.
+**NOTE** The ingress-certs.yaml are pre-defined for the `bigbang.dev` domain and are managed by Platform One. For deployments using your own domain, you will need to create a wildcard certification and create your own `ingress-certs.yaml` that correspond to the various domain values you customize in `demo_values.yaml`.
 ```
 helm upgrade --install bigbang $HOME/bigbang/chart \
   --values https://repo1.dso.mil/platform-one/big-bang/bigbang/-/raw/master/chart/ingress-certs.yaml \
@@ -108,38 +110,9 @@ helm upgrade --install bigbang $HOME/bigbang/chart \
   --namespace=bigbang --create-namespace
 ```
 
-Monitor progress.
+4. Monitor progress.
 ```
 watch oc get hr -n bigbang
-```
-
-At the point where eck-operator shows `Helm install failed: timed out waiting for the condition` and where monitoring shows `Helm install failed: failed pre-install: timed out waiting for the condition`, proceed to the "Finalize Big Bang Install" step.
-
-### Finalize Big Bang Install
-
-```
-oc adm policy add-scc-to-user node-exporter -z monitoring-monitoring-prometheus-node-exporter -n monitoring
-oc adm policy add-scc-to-user node-exporter -z logging-fluent-bit -n logging
-```
-```
-cat <<\EOF >> $HOME/NetworkAttachmentDefinition.yaml
-apiVersion: "k8s.cni.cncf.io/v1"
-kind: NetworkAttachmentDefinition
-metadata:
-  name: istio-cni
-EOF
-```
-
-The following list of network attachment definitions will need to be tailored based on the selection of applications installed previously.
-
-```
-oc -n logging create -f ~/NetworkAttachmentDefinition.yaml
-oc -n eck-operator create -f ~/NetworkAttachmentDefinition.yaml
-oc -n kiali create -f ~/NetworkAttachmentDefinition.yaml
-oc -n jaeger create -f ~/NetworkAttachmentDefinition.yaml
-oc -n monitoring create -f ~/NetworkAttachmentDefinition.yaml
-oc -n cluster-auditor create -f ~/NetworkAttachmentDefinition.yaml
-oc -n sonarqube create -f ~/NetworkAttachmentDefinition.yaml
 ```
 
 ## Validate Big Bang on OpenShift
@@ -148,85 +121,89 @@ Refer to https://repo1.dso.mil/platform-one/big-bang/customers/bigbang/-/blob/ma
 
 Follow application-specific guidance below depending on which applications you have installed.
 
-Check virtual services.
+1. Check virtual services.
 ```
 oc get virtualservices -A
 ```
 
-Confirm Istio ingress/gateway.
+2. Confirm Istio ingress/gateway.
 ```
-oc get svc/public-ingressgateway -n istio-system
-```
-
-Note that displayed IP address is internal. Get IP address of Istio ingress/gateway external to infrastructure. Use value of EXTERNAL-IP:
-```
-ping $EXTERNAL-IP
+INGRESS-IP=$(oc get svc/public-ingressgateway -n istio-system -o json | jq -r '.status.loadBalancer.ingress[] | .hostname')
+ping ${INGRESS-IP}
 ```
 
-Use the external IP address in local workstation hosts file for each of the virtual services $HOSTS from output of `oc get virtualservices -A` command.
+3. Update /etc/hosts if not using DNS
+
+Use the INGRESS-IP address in local workstation hosts file for each of the virtual services $HOSTS from output of `oc get virtualservices -A` command.
 
 ```
 cat /etc/hosts
-# Big Bang testing 2022-11-21
-54.87.104.113 tracing.bigbang.dev
-54.87.104.113 kiali.bigbang.dev
-54.87.104.113 kibana.bigbang.dev
-54.87.104.113 alertmanager.bigbang.dev
-54.87.104.113 grafana.bigbang.dev
-54.87.104.113 prometheus.bigbang.dev
+x.x.x.x tracing.bigbang.dev
+x.x.x.x kiali.bigbang.dev
+x.x.x.x kibana.bigbang.dev
+x.x.x.x alertmanager.bigbang.dev
+x.x.x.x grafana.bigbang.dev
+x.x.x.x prometheus.bigbang.dev
+x.x.x.x twistlock.bigbang.dev
+x.x.x.x argocd.bigbang.dev
+x.x.x.x anchore-api.bigbang.dev
+x.x.x.x minio.bigbang.dev
+x.x.x.x keycloak.bigbang.dev
+x.x.x.x gitlab.bigbang.dev
+x.x.x.x registry.bigbang.dev
+x.x.x.x sonarqube.bigbang.dev
+x.x.x.x neuvector.bigbang.dev
+x.x.x.x harbor.bigbang.dev
 ```
 
-Use web browser on external workstation to access each URL.
+4. Use web browser on external workstation to access each URL.
+
+Jaeger does not require login.
 
 ![tracing.bigbang.dev](tracing.bigbang.dev.png)
 
+Kiali requires login via token. To obtain this token, where xxxxx is the unique identifer:
+
+```
+oc get secret kiali-service-account-token-xxxxx -n kiali -o json | jq -r .data.token | base64 -d && echo
+```
+
 ![kiali.bigbang.dev](kiali.bigbang.dev.png)
+
+Kibana requires login. Default credentials for the *elastic* user:
+
+```
+oc get secret logging-ek-es-elastic-user -n logging -o json | jq -r .data.elastic | base64 -d && echo1
+```
 
 ![kibana.bigbang.dev](kibana.bigbang.dev.png)
 
+Alertmanager does not require login.
+
 ![alertmanager.bigbang.dev](alertmanager.bigbang.dev.png)
+
+Grafana requires login.
+Username:
+```
+oc get secrets monitoring-monitoring-grafana -o json -n monitoring | jq -r '.data."admin-user"'  | base64 -d ; echo
+```
+
+Password:
+```
+oc get secrets monitoring-monitoring-grafana -o json -n monitoring | jq -r '.data."admin-password"'  | base64 -d ; echo
+```
 
 ![grafana.bigbang.dev](grafana.bigbang.dev.png)
 
+Prometheus does not require login.
+
 ![prometheus.bigbang.dev](prometheus.bigbang.dev.png)
-
-### gatekeeper
-
-### eck-operator
-See [here](eck-operator.md).
-
-### elasticsearch-kibana
-
-See [here](elasticsearch-kibana.md).
-### fluent-bit
-
-See [here](fluentbit.md).
-### grafana
-
-See [here](grafana.md).
-### istio and istio-operator
-
-See [here](istio.md).
-### jaeger
-
-See [here](jaeger.md).
-### kiali
-
-See [here](kiali.md)
-### prometheus
-
-See [here](prometheus.md).
-
-### cluster-auditor
-
-### ek
-
-### monitoring
 
 ## Contacts
 
-- Chris Mays, @chmays, chmays@redhat.com
-- Arian Sanchez, @arisanch, arisanch@redhat.com
-- Roger Seip, @rseip, rseip@redhat.com
+- Red Hat Platform One team, PlatformOne@redhat.com
+  - Chris Mays, @chmays, chmays@redhat.com
+  - Arian Sanchez, @arisanch, arian@redhat.com
+  - Roger Seip, @rseip, rseip@redhat.com
 - Ernest Chuang, @echuang, echuang@revacomm.com
 - Ramin Rad, @oorah, rrad@oteemo.com
