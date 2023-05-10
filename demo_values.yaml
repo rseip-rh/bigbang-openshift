@@ -1,52 +1,133 @@
-domain: bigbang.dev
-
 openshift: true
 
-istio:
+domain: ${DOMAIN}
+
+monitoring:
   enabled: true
-  # values passes through to istio-controlplane chart
+  git:
+    tag: null
+    branch: "cmays-openshift-1"
   values:
-    profile: "openshift"
-    monitoring:
-      enabled: false
-    networkPolicies:
+    alertmanager:
       enabled: true
-    values: # possible values found here https://istio.io/v1.5/docs/reference/config/installation-options (ignore 1.5, latest docs point here)
-      global: # global istio operator values
-        proxy: # mutating webhook injected istio sidecar proxy's values
-          resources:
-            requests:
-              cpu: 0m # null get ignored if used here
-              memory: 0Mi
-            limits:
-              cpu: 0m
-              memory: 0Mi
 
-istiooperator:
-  enabled: true
-  # values passes through to istio-operator chart
+    prometheusOperator:
+      alertmanagerInstanceNamespaces: ['monitoring']
+      alertmanagerConfigNamespaces: ['monitoring']
+      prometheusInstanceNamespaces: ['monitoring']
+      thanosRulerInstanceNamespaces: ['monitoring']
+      #namespaces:
+        #releaseNamespace: true
+      kubeletService:
+        enabled: false
 
-jaeger:
+    kube-state-metrics:
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+
+    prometheus:
+
+      thanosService:
+        enabled: true
+      thanosServiceMonitor: 
+        enabled: true
+
+      prometheusSpec:
+        retention: 2d
+
+        thanos:
+          baseImage: registry1.dso.mil/ironbank/opensource/thanos/thanos
+          version: v0.29.0 
+        podMonitorNamespaceSelector:
+          matchExpressions:
+            - key: openshift.io/cluster-monitoring
+              operator: NotIn
+              values:
+                - 'true'
+        probeNamespaceSelector:
+          matchExpressions:
+            - key: openshift.io/cluster-monitoring
+              operator: NotIn
+              values:
+                - 'true'
+        serviceMonitorNamespaceSelector:
+          matchExpressions:
+            - key: openshift.io/cluster-monitoring
+              operator: NotIn
+              values:
+                - 'true'
+
+eckoperator:
   enabled: true
+  git:
+    tag: null
+    branch: "cmays-openshift-1"
+
+fluentbit:
+  enabled: true
+  git:
+    tag: null
+    branch: "cmays-openshift-1"
   values:
-    jaeger:
-      spec:
-        ingress:
-          security: none
+    podSecurityContext: null
+    openShift:
+      securityContextConstraints:
+        create: false
+    securityContext:
+      seLinuxOptions: null
+      privileged: true
 
-kiali:
+logging:
   enabled: true
-  # values pass through to kiali chart
+  git:
+    tag: null
+    branch: "cmays-openshift-1"
   values:
-    cr:
-      spec:
-        identity:
-          cert_file: ""
-          private_key_file: ""
+    kibana:
+      count: 2
+      resources:
+        requests:
+          cpu: 400m
+          memory: 1Gi
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+    elasticsearch:
+      master:
+        count: 3
+        resources:
+          requests:
+            cpu: 2000m
+            memory: 4Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        heap:
+          min: 3g
+          max: 3g
+      data:
+        count: 3
+        resources:
+          requests:
+            cpu: 2000m
+            memory: 8Gi
+          limits:
+            cpu: 2000m
+            memory: 8Gi
+        heap: 
+          min: 7g
+          max: 7g
 
 clusterAuditor:
   enabled: true
-  # values pass through to cluster-auditor chart
+  git:
+    tag: null
+    branch: "cmays-openshift-1"
   values:
     resources:
       requests:
@@ -58,32 +139,31 @@ clusterAuditor:
 
 gatekeeper:
   enabled: true
-  git:
-    tag: null
-    branch: "cmays-openshift-1"
+  git: 
+    tag: 3.10.0-bb.2
   values:
-    replicas: 1
+    replicas: 3 
     controllerManager:
       resources:
         requests:
           cpu: 100m
           memory: 512Mi
         limits:
-          cpu: null
-          memory: null
+          cpu: 1000m
+          memory: 1024Mi
     audit:
       resources:
         requests:
           cpu: 400m
           memory: 768Mi
         limits:
-          cpu: null
-          memory: null
+          cpu: 1000m
+          memory: 1024Mi
     violations:
       allowedDockerRegistries:
         enforcementAction: dryrun
         parameters:
-          repos:
+          repos: 
             - registry1.dso.mil
             - quay.io
             - registry.redhat.io
@@ -92,159 +172,67 @@ gatekeeper:
         enforcementAction: dryrun
       selinuxPolicy:
         enabled: false
-
-kyverno:
-  enabled: false
-
-kyverno-policies:
-  enabled: false
-
-logging:
+      httpsOnly:
+        enforcementAction: dryrun
+        parameters: 
+          excludedResources: 
+            - harbor/cm-acme-http-solver-.*
+            - gitlab/cm-acme-http-solver-.*
+      uniqueIngressHost:
+        enforcementAction: dryrun
+        parameters:
+          excludedResources:
+            - harbor/cm-acme-http-solver-.*
+            - gitlab/cm-acme-http-solver-.*
+      
+istiooperator:
   enabled: true
-  # values pass through to elasticsearch-kibana chart
+  git:
+    tag: null
+    branch: "cmays-openshift-1"
+
+istio:
+  enabled: true
+  git:
+    tag: null
+    branch: "cmays-openshift-1"
   values:
-    kibana:
-      count: 1
-      resources:
-        requests:
-          cpu: 400m
-          memory: 1Gi
-        limits:
-          cpu: null  # nonexistent cpu limit results in faster spin up
-          memory: null
-    elasticsearch:
-      master:
-        count: 1
-        resources:
-          requests:
-            cpu: 400m
-            memory: 2Gi
-          limits:
-            cpu: null
-            memory: null
-      data:
-        count: 1
-        resources:
-          requests:
-            cpu: 400m
-            memory: 2Gi
-          limits:
-            cpu: null
-            memory: null
+    profile: "openshift"
+    ingressGateways:
+      public-ingressgateway:
+        k8s: 
+          hpaSpec:
+            minReplicas: 3
+            maxReplicas: 5
 
-eckoperator:
+jaeger:
   enabled: true
-
-fluentbit:
-  enabled: true
-
-promtail:
-  enabled: false
-
-loki:
-  enabled: false
-
-tempo:
-  enabled: false
-
-# monitoring includes Prometheus, Grafana, and Alertmanager
-monitoring:
-  enabled: true
+  git:
+    tag: null
+    branch: "cmays-openshift-1"
   values:
-    alertmanager:
-      enabled: true
+    jaeger:
+      spec: 
+        ingress:
+          security: none
 
-    prometheusOperator:
-      namespaces:
-        releaseNamespace: true
-
-    prometheus:
-
-      thanosService:
-        enabled: true
-      thanosServiceMonitor:
-        enabled: true
-
-      prometheusSpec:
-        thanos:
-          baseImage: registry1.dso.mil/ironbank/opensource/thanos/thanos
-          version: v0.29.0
-        podMonitorNamespaceSelector:
-          matchExpressions:
-            - key: openshift.io/cluster-monitoring
-              operator: NotIn
-              values:
-                - 'true'
-            - key: openshift.io/user-monitoring
-              operator: NotIn
-              values:
-                - 'false'
-        probeNamespaceSelector:
-          matchExpressions:
-            - key: openshift.io/cluster-monitoring
-              operator: NotIn
-              values:
-                - 'true'
-            - key: openshift.io/user-monitoring
-              operator: NotIn
-              values:
-                - 'false'
-        serviceMonitorNamespaceSelector:
-          matchExpressions:
-            - key: openshift.io/cluster-monitoring
-              operator: NotIn
-              values:
-                - 'true'
-            - key: openshift.io/user-monitoring
-              operator: NotIn
-              values:
-                - 'false'
-
-    kubeApiServer:
-      enabled: false
-    kubelet:
-      enabled: false
-    kubeControllerManager:
-      enabled: false
-    coreDns:
-      enabled: false
-    kubeDns:
-      enabled: false
-    kubeEtcd:
-      enabled: false
-    kubeScheduler:
-      enabled: false
-    kubeProxy:
-      enabled: false
-    kubeStateMetrics:
-      enabled: false
+kiali: 
+  enabled: true
+  git:
+    tag: null
+    branch: "cmays-openshift-1"
+  values: 
+    cr: 
+      spec: 
+        identity: 
+          cert_file: ""
+          private_key_file: ""
 
 twistlock:
   enabled: false # twistlock requires a license to work, so we're disabling it
 
 addons:
-  argocd:
-    enabled: false
-
-  authervice:
-    enabled: false
-
-  minioOperator:
-    enabled: false
-
-  minio:
-    enabled: false
-
-  gitlab:
-    enabled: false
-
-  gitlabRunner:
-    enabled: false
-
-  nexus:
-    enabled: false
-
-  sonarqube:
+  sonarqube: 
     enabled: true
     git:
       tag: null
@@ -253,31 +241,176 @@ addons:
       serviceAccount:
         create: true
       postgresql:
-        securityContext:
+        securityContext: 
+          enabled: true 
+        serviceAccount: 
           enabled: true
-        serviceAccount:
+
+  argocd: 
+    enabled: true
+    git:
+      tag: null
+      branch: "cmays-openshift-1"
+    values: 
+      openshift: 
+        enabled: true
+      configs: 
+        cm: 
+          resource.exclusions: |
+            - apiGroups:
+              - "tekton.dev"
+              kinds:
+              - "PipelineRun"
+              clusters:
+              - "*"
+        params: 
+          redis.server: argocd-argocd-redis-bb-master:6379
+
+  gitlab:
+    enabled: true
+    istio: 
+      enabled: false
+      injection: disabled
+    flux:
+      timeout: 30m
+    values: 
+      istio:
+        gitlab: 
+          enabled: false
+        registry: 
+          enabled: false
+      global: 
+        hosts: 
+          domain: ${DOMAIN}
+          gitlab: 
+            name: gitlab.${DOMAIN}
+          registry: 
+            name: registry.${DOMAIN}
+
+        ingress: 
           enabled: true
+          tls: 
+            enabled: true
+          class: none
+          annotations: 
+            route.openshift.io/termination: "edge"
+            kubernetes.io/ingress.allow-http: "false"
+            kubernetes.io/tls-acme: true
+            cert-manager.io/cluster-issuer: letsencrypt
+        appConfig: 
+          initialDefaults: 
+            signupEnabled: false
+      nginx-ingress: 
+        enabled: false
+      certmanager:
+        install: false
+      registry: 
+        ingress: 
+          enabled: true
+          tls: 
+            secretName: gitlab-registry-tls
+      gitlab: 
+        webservice: 
+          ingress: 
+            enabled: true
+            tls:
+              secretName: gitlab-gitlab-tls
+        gitlab-shell: 
+          enabled: false
+      minio: 
+        ingress: 
+          enabled: false
 
-# Deployment of HAProxy is automatically toggled depending on Monitoring SSO and Monitoring Istio Injection
-  #haproxy:
+  gitlabRunner:
+    enabled: true
 
-  anchore:
-    enabled: false
+wrapper:
+  git: 
+    repo: https://repo1.dso.mil/big-bang/apps/wrapper
+    path: chart
+    branch: main
+packages:  
+  harbor:
+    enabled: true
+    istio:
+      injection: false    
+    git: 
+      repo: https://repo1.dso.mil/big-bang/apps/sandbox/harbor.git
+      path: chart
+      tag: 1.10.2-bb.6
+    values: 
+      updateStrategy:
+        type: Recreate
+      expose:
+        type: ingress
+        ingress:
+          annotations:
+            route.openshift.io/termination: "edge"
+            kubernetes.io/ingress.allow-http: "false"
+            kubernetes.io/tls-acme: "true"
+            cert-manager.io/cluster-issuer: letsencrypt
+          hosts: 
+            core: harbor.${DOMAIN}
+            notary: harbor-notary.${DOMAIN}
+        tls:
+          enabled: true
+          certSource: secret
+          secret: 
+            secretName: harbor-letsencrypt-cert
+            notarySecretName: harbor-notary-letsencrypt-cert
+      core: 
+        secretName: harbor-letsencrypt-cert
+        replicas: 2
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 500m
+          limits:
+            memory: 1024Mi
+            cpu: 1000m
+      internalTLS:
+        enabled: false
+      externalURL: https://harbor.${DOMAIN}
+      redis:
+        external:
+          addr: harbor-redis-bb-master:6379
+      registry:
+        registry: 
+          resources: 
+            requests: 
+              memory: 512Mi
+              cpu: 500m
+            limits: 
+              memory: 1024Mi
+              cpu: 1000m
+        controller:
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 500m
+            limits:
+              memory: 1024Mi
+              cpu: 1000m
+        replicas: 1 
+      notary: 
+        server: 
+          resources: 
+            requests: 
+              memory: 256Mi
+              cpu: 100m
+            limits: 
+              memory: 512Mi
+              cpu: 500m
+        signer:
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+      bbtests: 
+        enabled: false
+      networkPolicies: 
+        enabled: true
 
-  mattermostoperator:
-    enabled: false
-
-  mattermost:
-    enabled: false
-
-  velero:
-    enabled: false
-
-  keycloak:
-    enabled: false
-
-  vault:
-    enabled: false
-
-  metricsServer:
-    enabled: false
